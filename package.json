@@ -1,0 +1,26 @@
+{
+  "name": "lws-server",
+  "version": "0.0.1",
+  "description": "Linked Web Storage Server",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/linkedwebstorage/lws-server.git"
+  },
+  "keywords": [
+    "lws",
+    "linked",
+    "web",
+    "storage",
+    "linkedwebstorage"
+  ],
+  "author": "Melvin Carvalho",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/linkedwebstorage/lws-server/issues"
+  },
+  "homepage": "https://github.com/linkedwebstorage/lws-server#readme"
+}
