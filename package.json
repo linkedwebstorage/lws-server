@@ -1,6 +1,6 @@
 {
   "name": "lws-server",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Minimal Linked Web Storage Server - Reference implementation of W3C LWS protocol",
   "type": "module",
   "main": "index.js",

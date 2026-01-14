@@ -65,21 +65,37 @@ for (let i = 0; i < args.length; i++) {
 // Create and start server
 const server = createServer(options);
 
-await server.start();
+try {
+  await server.start();
+} catch (error) {
+  console.error(chalk.red('\n✗ Failed to start server\n'));
+
+  if (error.code === 'EADDRINUSE') {
+    console.error(chalk.yellow(`Port ${options.port} is already in use.`));
+    console.error(chalk.dim(`Try a different port: ${chalk.white(`lws-server --port ${options.port + 1}`)}\n`));
+  } else {
+    console.error(chalk.red(`Error: ${error.message}\n`));
+    if (options.logger) {
+      console.error(error.stack);
+    }
+  }
+
+  process.exit(1);
+}
 
 // Display startup banner
 console.log(chalk.cyan(`
 ╔═══════════════════════════════════════════════════════════════════╗
 ║                                                                   ║
-║        ${chalk.bold.white('██╗     ██╗    ██╗███████╗    ███████╗███████╗██████╗ ██╗   ██╗')}       ║
-║        ${chalk.bold.white('██║     ██║    ██║██╔════╝    ██╔════╝██╔════╝██╔══██╗██║   ██║')}       ║
-║        ${chalk.bold.white('██║     ██║ █╗ ██║███████╗    ███████╗█████╗  ██████╔╝██║   ██║')}       ║
-║        ${chalk.bold.white('██║     ██║███╗██║╚════██║    ╚════██║██╔══╝  ██╔══██╗╚██╗ ██╔╝')}       ║
-║        ${chalk.bold.white('███████╗╚███╔███╔╝███████║    ███████║███████╗██║  ██║ ╚████╔╝ ')}       ║
-║        ${chalk.bold.white('╚══════╝ ╚══╝╚══╝ ╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝  ╚═══╝  ')}       ║
+║                    ${chalk.bold.white('██╗     ██╗    ██╗███████╗')}                     ║
+║                    ${chalk.bold.white('██║     ██║    ██║██╔════╝')}                     ║
+║                    ${chalk.bold.white('██║     ██║ █╗ ██║███████╗')}                     ║
+║                    ${chalk.bold.white('██║     ██║███╗██║╚════██║')}                     ║
+║                    ${chalk.bold.white('███████╗╚███╔███╔╝███████║')}                     ║
+║                    ${chalk.bold.white('╚══════╝ ╚══╝╚══╝ ╚══════╝')}                     ║
 ║                                                                   ║
-║              ${chalk.bold.yellow('Linked Web Storage Protocol Server')}                  ║
-║                 ${chalk.dim('W3C-compliant REST storage API')}                     ║
+║              ${chalk.bold.yellow('Linked Web Storage Protocol Server')}                   ║
+║                ${chalk.dim('W3C-compliant REST storage API')}                     ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 `));
