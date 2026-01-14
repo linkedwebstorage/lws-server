@@ -25,7 +25,7 @@ A lightweight, standalone implementation of the [W3C Linked Web Storage (LWS) pr
 
 ```bash
 npm install -g lws-server
-lws-server --port 3000
+lws-server --port 3126
 ```
 
 ### Local Installation (Library)
@@ -39,7 +39,7 @@ npm install lws-server
 ### CLI Usage
 
 ```bash
-# Start server on default port 3000
+# Start server on default port 3126
 lws-server
 
 # Custom port and data directory
@@ -52,7 +52,7 @@ lws-server --quiet
 ### CLI Options
 
 ```
--p, --port <number>     Port to listen on (default: 3000)
+-p, --port <number>     Port to listen on (default: 3126)
 -h, --host <address>    Host to bind to (default: 0.0.0.0)
 -r, --root <path>       Data directory (default: ./data)
 -q, --quiet             Disable logging
@@ -65,13 +65,13 @@ lws-server --quiet
 import { createServer } from 'lws-server';
 
 const server = createServer({
-  port: 3000,
+  port: 3126,
   root: './data',
   logger: true
 });
 
 await server.start();
-console.log('LWS server running');
+console.log('LWS server running on http://localhost:3126');
 ```
 
 ## HTTP API
@@ -79,7 +79,7 @@ console.log('LWS server running');
 ### Create Resource (PUT)
 
 ```bash
-curl -X PUT http://localhost:3000/data.json \
+curl -X PUT http://localhost:3126/data.json \
   -H "Content-Type: application/json" \
   -d '{"hello": "world"}'
 ```
@@ -87,7 +87,7 @@ curl -X PUT http://localhost:3000/data.json \
 ### Create Resource (POST)
 
 ```bash
-curl -X POST http://localhost:3000/ \
+curl -X POST http://localhost:3126/ \
   -H "Content-Type: application/json" \
   -H "Slug: my-resource" \
   -d '{"created": "via POST"}'
@@ -96,13 +96,13 @@ curl -X POST http://localhost:3000/ \
 ### Read Resource
 
 ```bash
-curl http://localhost:3000/data.json
+curl http://localhost:3126/data.json
 ```
 
 ### Update Resource
 
 ```bash
-curl -X PUT http://localhost:3000/data.json \
+curl -X PUT http://localhost:3126/data.json \
   -H "Content-Type: application/json" \
   -d '{"updated": true}'
 ```
@@ -110,13 +110,13 @@ curl -X PUT http://localhost:3000/data.json \
 ### Delete Resource
 
 ```bash
-curl -X DELETE http://localhost:3000/data.json
+curl -X DELETE http://localhost:3126/data.json
 ```
 
 ### List Container
 
 ```bash
-curl http://localhost:3000/
+curl http://localhost:3126/
 ```
 
 Returns JSON-LD:
@@ -129,10 +129,10 @@ Returns JSON-LD:
       "@type": "@id"
     }
   },
-  "@id": "http://localhost:3000/",
+  "@id": "http://localhost:3126/",
   "@type": ["Container", "BasicContainer", "Resource"],
   "contains": [
-    { "@id": "http://localhost:3000/data.json" }
+    { "@id": "http://localhost:3126/data.json" }
   ]
 }
 ```
@@ -140,7 +140,7 @@ Returns JSON-LD:
 ### Create Container
 
 ```bash
-curl -X POST http://localhost:3000/ \
+curl -X POST http://localhost:3126/ \
   -H "Slug: my-folder" \
   -H "Link: <http://www.w3.org/ns/ldp#BasicContainer>; rel=\"type\""
 ```
@@ -151,10 +151,10 @@ curl -X POST http://localhost:3000/ \
 
 ```bash
 # Get current ETag
-ETAG=$(curl -sI http://localhost:3000/data.json | grep -i etag | awk '{print $2}')
+ETAG=$(curl -sI http://localhost:3126/data.json | grep -i etag | awk '{print $2}')
 
 # Update only if ETag matches
-curl -X PUT http://localhost:3000/data.json \
+curl -X PUT http://localhost:3126/data.json \
   -H "If-Match: $ETAG" \
   -H "Content-Type: application/json" \
   -d '{"safe": "update"}'
@@ -164,7 +164,7 @@ curl -X PUT http://localhost:3000/data.json \
 
 ```bash
 # Create only if doesn't exist
-curl -X PUT http://localhost:3000/new.json \
+curl -X PUT http://localhost:3126/new.json \
   -H "If-None-Match: *" \
   -H "Content-Type: application/json" \
   -d '{"create": "only"}'
@@ -243,7 +243,7 @@ const app = express();
 const lws = createServer({ root: './storage' });
 app.use('/storage', lws);
 
-app.listen(3000);
+app.listen(3126);
 ```
 
 ### 3. Microservices

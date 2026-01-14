@@ -7,6 +7,7 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { createServer } from '../lib/server.js';
 import fs from 'fs-extra';
+import { randomUUID } from 'crypto';
 
 describe('LWS Server', () => {
   let server;
@@ -49,7 +50,8 @@ describe('LWS Server', () => {
 
   describe('PUT', () => {
     it('should create new resource', async () => {
-      const res = await fetch(`${baseUrl}/put-create-test.json`, {
+      const uniqueFile = `put-create-${randomUUID()}.json`;
+      const res = await fetch(`${baseUrl}/${uniqueFile}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ test: true })

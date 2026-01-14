@@ -10,7 +10,7 @@ import { createServer } from './lib/server.js';
 // Parse CLI arguments
 const args = process.argv.slice(2);
 const options = {
-  port: 3000,
+  port: 3126,
   host: '0.0.0.0',
   root: './data',
   logger: true
@@ -35,7 +35,7 @@ Usage:
   lws-server [options]
 
 Options:
-  -p, --port <number>     Port to listen on (default: 3000)
+  -p, --port <number>     Port to listen on (default: 3126)
   -h, --host <address>    Host to bind to (default: 0.0.0.0)
   -r, --root <path>       Data directory (default: ./data)
   -q, --quiet             Disable logging
