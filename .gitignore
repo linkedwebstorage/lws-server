@@ -42,6 +42,10 @@ build/Release
 node_modules/
 jspm_packages/
 
+# LWS Server data directories
+data/
+test-data/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
