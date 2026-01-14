@@ -1,6 +1,6 @@
 {
   "name": "lws-server",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Minimal Linked Web Storage Server - Reference implementation of W3C LWS protocol",
   "type": "module",
   "main": "index.js",
@@ -37,6 +37,7 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "chalk": "^5.6.2",
     "fastify": "^5.2.0",
     "fs-extra": "^11.2.0"
   }
