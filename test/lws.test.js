@@ -6,12 +6,16 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { createServer } from '../lib/server.js';
+import fs from 'fs-extra';
 
 describe('LWS Server', () => {
   let server;
   let baseUrl;
 
   before(async () => {
+    // Clean up any existing test data
+    await fs.remove('./test-data');
+
     // Start test server
     server = createServer({
       logger: false,
@@ -26,6 +30,8 @@ describe('LWS Server', () => {
 
   after(async () => {
     await server.close();
+    // Clean up test data
+    await fs.remove('./test-data');
   });
 
   describe('GET', () => {
@@ -43,7 +49,7 @@ describe('LWS Server', () => {
 
   describe('PUT', () => {
     it('should create new resource', async () => {
-      const res = await fetch(`${baseUrl}/test.json`, {
+      const res = await fetch(`${baseUrl}/put-create-test.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ test: true })

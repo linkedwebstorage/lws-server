@@ -13,7 +13,7 @@ A lightweight, standalone implementation of the [W3C Linked Web Storage (LWS) pr
 - ✅ **CORS Enabled** - Cross-origin resource sharing
 - ✅ **Link Headers** - LDP/LWS type headers
 - ✅ **Container Support** - Hierarchical storage with POST creation
-- ✅ **Minimal Dependencies** - Only 3 runtime dependencies
+- ✅ **Minimal Dependencies** - Only 2 runtime dependencies
 - ✅ **Fast Startup** - < 100ms startup time
 - ✅ **Small Footprint** - ~1000 LOC, < 5MB node_modules
 - ✅ **Embeddable** - Use as Node.js module
@@ -203,12 +203,11 @@ lws-server/
 ```json
 {
   "fastify": "^5.2.0",
-  "@fastify/cors": "^10.0.1",
   "fs-extra": "^11.2.0"
 }
 ```
 
-**Total:** 3 runtime dependencies (~150 packages with dependencies)
+**Total:** 2 runtime dependencies (~50 packages with transitive dependencies)
 
 **Compare to full-featured servers:**
 - JavaScriptSolidServer: 22 direct dependencies
@@ -282,7 +281,7 @@ Then explore `lib/handlers.js` (~300 LOC) to understand LWS operations.
 | Feature | lws-server | JSS | Solid Community Server |
 |---------|-----------|-----|----------------------|
 | **LOC** | ~1000 | ~8000 | ~20000+ |
-| **Dependencies** | 3 | 22 | 80+ |
+| **Dependencies** | 2 | 22 | 80+ |
 | **Startup** | < 100ms | ~500ms | ~2s |
 | **Memory** | ~30MB | ~150MB | ~300MB |
 | **Protocols** | LWS | LDP, LWS, OIDC, AP, Nostr | LDP, Solid-OIDC |
@@ -352,7 +351,7 @@ Contributions welcome! This project aims to stay **minimal** - only core LWS pro
 
 **Guidelines:**
 - Keep total LOC < 1500
-- Keep dependencies < 5 runtime deps
+- Keep dependencies < 3 runtime deps
 - No authentication (out of scope)
 - No content negotiation (out of scope)
 
