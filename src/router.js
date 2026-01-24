@@ -130,7 +130,12 @@ async function handleStorage(req, res) {
     // Check If-None-Match for caching
     const ifNoneMatch = req.headers['if-none-match']
     if (ifNoneMatch && ifNoneMatch === stat.etag) {
-      res.writeHead(304)
+      const contentType = stat.isDirectory ? 'application/ld+json' : mimeType(resourcePath, null)
+      res.writeHead(304, {
+        'Content-Type': contentType,
+        'ETag': stat.etag,
+        'Last-Modified': stat.mtime.toUTCString()
+      })
       return res.end()
     }
 
@@ -156,9 +161,12 @@ async function handleStorage(req, res) {
     const contentType = stat.isDirectory ? 'application/ld+json' : mimeType(resourcePath, null)
     const headers = {
       'Content-Type': contentType,
-      'Content-Length': stat.size,
       'ETag': stat.etag,
       'Last-Modified': stat.mtime.toUTCString()
+    }
+    // Only include Content-Length for files (not directories)
+    if (!stat.isDirectory) {
+      headers['Content-Length'] = stat.size
     }
     res.writeHead(200, headers)
     return res.end()
@@ -168,11 +176,17 @@ async function handleStorage(req, res) {
   if (method === 'PUT') {
     const stat = await storage.stat(resourcePath)
 
-    // Check If-Match for concurrency control
+    // Check If-Match for concurrency control (RFC 7232)
     const ifMatch = req.headers['if-match']
-    if (ifMatch && stat && ifMatch !== stat.etag) {
-      res.writeHead(412, { 'Content-Type': 'application/json' })
-      return res.end(JSON.stringify({ error: 'Precondition Failed', expected: ifMatch, actual: stat.etag }))
+    if (ifMatch) {
+      if (!stat) {
+        res.writeHead(412, { 'Content-Type': 'application/json' })
+        return res.end(JSON.stringify({ error: 'Precondition Failed', reason: 'Resource does not exist' }))
+      }
+      if (ifMatch !== stat.etag) {
+        res.writeHead(412, { 'Content-Type': 'application/json' })
+        return res.end(JSON.stringify({ error: 'Precondition Failed', expected: ifMatch, actual: stat.etag }))
+      }
     }
 
     // Check If-None-Match to prevent overwrite
@@ -187,7 +201,11 @@ async function handleStorage(req, res) {
 
     const newStat = await storage.stat(resourcePath)
     const statusCode = stat ? 204 : 201
-    const headers = { 'ETag': newStat.etag, 'Location': `/storage${resourcePath}` }
+    const headers = {
+      'ETag': newStat.etag,
+      'Location': `/storage${resourcePath}`,
+      'Last-Modified': newStat.mtime.toUTCString()
+    }
     res.writeHead(statusCode, headers)
     return res.end()
   }
