@@ -121,26 +121,92 @@ async function handleStorage(req, res) {
 
   // GET - Read resource
   if (method === 'GET') {
-    const resource = await storage.get(resourcePath)
-    if (!resource) {
+    const stat = await storage.stat(resourcePath)
+    if (!stat) {
       res.writeHead(404, { 'Content-Type': 'application/json' })
       return res.end(JSON.stringify({ error: 'Not Found' }))
     }
+
+    // Check If-None-Match for caching
+    const ifNoneMatch = req.headers['if-none-match']
+    if (ifNoneMatch && ifNoneMatch === stat.etag) {
+      res.writeHead(304)
+      return res.end()
+    }
+
+    const resource = await storage.get(resourcePath)
     const contentType = mimeType(resourcePath, resource)
-    res.writeHead(200, { 'Content-Type': contentType })
+    const headers = {
+      'Content-Type': contentType,
+      'ETag': stat.etag,
+      'Last-Modified': stat.mtime.toUTCString()
+    }
+    res.writeHead(200, headers)
     return res.end(typeof resource === 'string' ? resource : JSON.stringify(resource, null, 2))
+  }
+
+  // HEAD - Metadata only
+  if (method === 'HEAD') {
+    const stat = await storage.stat(resourcePath)
+    if (!stat) {
+      res.writeHead(404)
+      return res.end()
+    }
+
+    const contentType = stat.isDirectory ? 'application/ld+json' : mimeType(resourcePath, null)
+    const headers = {
+      'Content-Type': contentType,
+      'Content-Length': stat.size,
+      'ETag': stat.etag,
+      'Last-Modified': stat.mtime.toUTCString()
+    }
+    res.writeHead(200, headers)
+    return res.end()
   }
 
   // PUT - Create/Update resource
   if (method === 'PUT') {
+    const stat = await storage.stat(resourcePath)
+
+    // Check If-Match for concurrency control
+    const ifMatch = req.headers['if-match']
+    if (ifMatch && stat && ifMatch !== stat.etag) {
+      res.writeHead(412, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Precondition Failed', expected: ifMatch, actual: stat.etag }))
+    }
+
+    // Check If-None-Match to prevent overwrite
+    const ifNoneMatch = req.headers['if-none-match']
+    if (ifNoneMatch === '*' && stat) {
+      res.writeHead(412, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Resource already exists' }))
+    }
+
     const body = await parseBody(req)
     await storage.put(resourcePath, body, agent)
-    res.writeHead(201, { 'Content-Type': 'application/json' })
-    return res.end(JSON.stringify({ created: resourcePath }))
+
+    const newStat = await storage.stat(resourcePath)
+    const statusCode = stat ? 204 : 201
+    const headers = { 'ETag': newStat.etag, 'Location': `/storage${resourcePath}` }
+    res.writeHead(statusCode, headers)
+    return res.end()
   }
 
   // DELETE - Remove resource
   if (method === 'DELETE') {
+    const stat = await storage.stat(resourcePath)
+    if (!stat) {
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Not Found' }))
+    }
+
+    // Check If-Match for concurrency control
+    const ifMatch = req.headers['if-match']
+    if (ifMatch && ifMatch !== stat.etag) {
+      res.writeHead(412, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Precondition Failed' }))
+    }
+
     await storage.delete(resourcePath)
     res.writeHead(204)
     return res.end()
