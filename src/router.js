@@ -297,7 +297,15 @@ async function handleStorage(req, res) {
   // POST - Append/Create in container
   if (method === 'POST') {
     const body = await parseBody(req)
-    const newPath = await storage.post(resourcePath, body, agent)
+
+    // Get Slug header for suggested name
+    const slug = req.headers.slug || null
+
+    // Check Link header for container creation
+    const linkHeader = req.headers.link || ''
+    const isContainer = linkHeader.includes('Container') || linkHeader.includes('BasicContainer')
+
+    const newPath = await storage.post(resourcePath, body, agent, { slug, isContainer })
     const newStat = await storage.stat(newPath)
     res.writeHead(201, {
       'Content-Type': 'application/json',

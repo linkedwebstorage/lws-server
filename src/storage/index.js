@@ -67,10 +67,65 @@ export class Storage {
     return resourcePath
   }
 
-  async post(containerPath, data, agent) {
-    const id = crypto.randomUUID().slice(0, 8)
-    const resourcePath = path.join(containerPath, id + '.json')
-    await this.put(resourcePath, data, agent)
+  async post(containerPath, data, agent, options = {}) {
+    const { slug, isContainer } = options
+    const extension = isContainer ? '' : '.json'
+
+    // Generate base name from slug or UUID
+    let baseName = slug ? sanitizeSlug(slug) : crypto.randomUUID().slice(0, 8)
+
+    // Strip .json extension from slug to avoid double extension
+    if (!isContainer && baseName.endsWith('.json')) {
+      baseName = baseName.slice(0, -5)
+    }
+
+    // Atomic creation with collision handling
+    // Uses O_CREAT|O_EXCL ('wx' flag) which fails atomically if file exists
+    let resourcePath = path.join(containerPath, baseName + extension)
+    let suffix = 0
+    const maxAttempts = 100
+
+    while (suffix < maxAttempts) {
+      const fullPath = this.resolvePath(resourcePath)
+      try {
+        if (isContainer) {
+          // mkdir without recursive fails if dir exists (atomic)
+          await fs.mkdir(fullPath)
+        } else {
+          // Ensure parent directory exists
+          await fs.mkdir(path.dirname(fullPath), { recursive: true })
+          // 'wx' flag: create exclusively, fail if exists (atomic)
+          const handle = await fs.open(fullPath, 'wx')
+          const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+          await handle.writeFile(content, 'utf-8')
+          await handle.close()
+        }
+        return resourcePath
+      } catch (err) {
+        if (err.code === 'EEXIST') {
+          // Collision - try next suffix
+          suffix++
+          resourcePath = path.join(containerPath, `${baseName}-${suffix}${extension}`)
+        } else {
+          throw err
+        }
+      }
+    }
+
+    // Fallback to UUID after max collisions
+    baseName = crypto.randomUUID().slice(0, 8)
+    resourcePath = path.join(containerPath, baseName + extension)
+    const fullPath = this.resolvePath(resourcePath)
+
+    if (isContainer) {
+      await fs.mkdir(fullPath)
+    } else {
+      await fs.mkdir(path.dirname(fullPath), { recursive: true })
+      const handle = await fs.open(fullPath, 'wx')
+      const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+      await handle.writeFile(content, 'utf-8')
+      await handle.close()
+    }
     return resourcePath
   }
 
@@ -143,4 +198,26 @@ function mergePatch(target, patch) {
     }
   }
   return result
+}
+
+/**
+ * Sanitize slug for use as filename
+ * - Only alphanumeric, hyphens, underscores, dots allowed
+ * - Remove path separators to prevent traversal
+ * - Trim whitespace, replace spaces with hyphens
+ * - Remove leading/trailing dots/hyphens
+ * - Limit length to 100 chars
+ */
+function sanitizeSlug(slug) {
+  if (slug == null || typeof slug !== 'string') {
+    return 'resource'
+  }
+  return slug
+    .trim()
+    .replace(/[/\\]/g, '')          // remove path separators (security)
+    .replace(/\s+/g, '-')           // spaces to hyphens
+    .replace(/[^a-zA-Z0-9._-]/g, '') // remove invalid chars
+    .replace(/^[.-]+|[.-]+$/g, '')   // trim leading/trailing dots/hyphens
+    .slice(0, 100)                   // limit length
+    || 'resource'                    // fallback if empty
 }
