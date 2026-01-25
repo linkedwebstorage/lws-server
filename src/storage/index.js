@@ -74,6 +74,11 @@ export class Storage {
     // Generate base name from slug or UUID
     let baseName = slug ? sanitizeSlug(slug) : crypto.randomUUID().slice(0, 8)
 
+    // Strip .json extension from slug to avoid double extension
+    if (!isContainer && baseName.endsWith('.json')) {
+      baseName = baseName.slice(0, -5)
+    }
+
     // Atomic creation with collision handling
     // Uses O_CREAT|O_EXCL ('wx' flag) which fails atomically if file exists
     let resourcePath = path.join(containerPath, baseName + extension)
