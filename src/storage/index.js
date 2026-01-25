@@ -103,4 +103,44 @@ export class Storage {
       throw err
     }
   }
+
+  async patch(resourcePath, patchData, agent) {
+    const resourceExists = await this.exists(resourcePath)
+    if (!resourceExists) {
+      return null // Resource doesn't exist
+    }
+    const existing = await this.get(resourcePath)
+    if (typeof existing !== 'object' || typeof patchData !== 'object') {
+      // Can't merge non-objects, just replace
+      await this.put(resourcePath, patchData, agent)
+      return resourcePath
+    }
+    const merged = mergePatch(existing, patchData)
+    await this.put(resourcePath, merged, agent)
+    return resourcePath
+  }
+}
+
+/**
+ * JSON Merge Patch (RFC 7396)
+ * - null values delete keys
+ * - other values replace/add keys
+ * - recursively merges objects
+ */
+function mergePatch(target, patch) {
+  if (patch === null || typeof patch !== 'object' || Array.isArray(patch)) {
+    return patch
+  }
+  if (target === null || typeof target !== 'object' || Array.isArray(target)) {
+    target = {}
+  }
+  const result = { ...target }
+  for (const key of Object.keys(patch)) {
+    if (patch[key] === null) {
+      delete result[key]
+    } else {
+      result[key] = mergePatch(result[key], patch[key])
+    }
+  }
+  return result
 }

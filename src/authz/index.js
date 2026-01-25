@@ -15,7 +15,7 @@ export class Authz {
     }
 
     // Write requires being the owner
-    if (method === 'PUT' || method === 'POST' || method === 'DELETE') {
+    if (method === 'PUT' || method === 'POST' || method === 'PATCH' || method === 'DELETE') {
       // No agent = no write
       if (!agent) return false
       

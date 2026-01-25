@@ -235,6 +235,65 @@ async function handleStorage(req, res) {
     return res.end()
   }
 
+  // PATCH - Partial update (JSON Merge Patch)
+  if (method === 'PATCH') {
+    // Validate Content-Type (case-insensitive per RFC)
+    const contentTypeHeader = req.headers['content-type'] || ''
+    const mediaType = contentTypeHeader.split(';')[0].trim().toLowerCase()
+    if (mediaType !== 'application/merge-patch+json') {
+      res.writeHead(415, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({
+        error: 'Unsupported Media Type',
+        supported: ['application/merge-patch+json']
+      }))
+    }
+
+    const stat = await storage.stat(resourcePath)
+
+    // Can't PATCH non-existent resource
+    if (!stat) {
+      res.writeHead(409, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Conflict', reason: 'Resource does not exist' }))
+    }
+
+    // Can't PATCH containers
+    if (stat.isDirectory) {
+      res.writeHead(409, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Conflict', reason: 'Cannot PATCH containers' }))
+    }
+
+    // Check If-Match for concurrency control
+    const ifMatch = req.headers['if-match']
+    if (ifMatch && ifMatch !== stat.etag) {
+      res.writeHead(412, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Precondition Failed', expected: ifMatch, actual: stat.etag }))
+    }
+
+    const patchData = await parseBody(req)
+
+    // Reject invalid JSON (parseBody returns string on parse failure)
+    if (typeof patchData === 'string') {
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Bad Request', reason: 'Invalid JSON in request body' }))
+    }
+    const result = await storage.patch(resourcePath, patchData, agent)
+
+    if (result === null) {
+      res.writeHead(409, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Conflict', reason: 'Patch failed' }))
+    }
+
+    const newStat = await storage.stat(resourcePath)
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'ETag': newStat.etag,
+      'Last-Modified': newStat.mtime.toUTCString(),
+      ...ldpHeaders(false)
+    })
+    const updated = await storage.get(resourcePath)
+    return res.end(JSON.stringify(updated, null, 2))
+  }
+
   // POST - Append/Create in container
   if (method === 'POST') {
     const body = await parseBody(req)

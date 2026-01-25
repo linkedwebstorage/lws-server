@@ -24,7 +24,7 @@ export function linkHeader(isContainer) {
  * Generate Allow header listing supported methods
  */
 export function allowHeader(isContainer) {
-  const methods = ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS']
+  const methods = ['GET', 'HEAD', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   if (isContainer) {
     methods.push('POST')
   }
@@ -41,6 +41,8 @@ export function ldpHeaders(isContainer) {
   }
   if (isContainer) {
     headers['Accept-Post'] = '*/*'
+  } else {
+    headers['Accept-Patch'] = 'application/merge-patch+json'
   }
   return headers
 }
