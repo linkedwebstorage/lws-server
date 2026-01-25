@@ -87,4 +87,20 @@ export class Storage {
       return false
     }
   }
+
+  async stat(resourcePath) {
+    try {
+      const fullPath = this.resolvePath(resourcePath)
+      const stat = await fs.stat(fullPath)
+      return {
+        isDirectory: stat.isDirectory(),
+        size: stat.size,
+        mtime: stat.mtime,
+        etag: `"${stat.mtimeMs.toString(16)}-${stat.size.toString(16)}"`
+      }
+    } catch (err) {
+      if (err.code === 'ENOENT') return null
+      throw err
+    }
+  }
 }
