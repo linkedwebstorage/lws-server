@@ -1,4 +1,5 @@
 import { mimeType } from './middleware/mime.js'
+import { ldpHeaders } from './middleware/headers.js'
 import { renderHomePage } from './views/index.js'
 
 export async function router(req, res) {
@@ -134,7 +135,8 @@ async function handleStorage(req, res) {
       res.writeHead(304, {
         'Content-Type': contentType,
         'ETag': stat.etag,
-        'Last-Modified': stat.mtime.toUTCString()
+        'Last-Modified': stat.mtime.toUTCString(),
+        ...ldpHeaders(stat.isDirectory)
       })
       return res.end()
     }
@@ -144,7 +146,8 @@ async function handleStorage(req, res) {
     const headers = {
       'Content-Type': contentType,
       'ETag': stat.etag,
-      'Last-Modified': stat.mtime.toUTCString()
+      'Last-Modified': stat.mtime.toUTCString(),
+      ...ldpHeaders(stat.isDirectory)
     }
     res.writeHead(200, headers)
     return res.end(typeof resource === 'string' ? resource : JSON.stringify(resource, null, 2))
@@ -162,7 +165,8 @@ async function handleStorage(req, res) {
     const headers = {
       'Content-Type': contentType,
       'ETag': stat.etag,
-      'Last-Modified': stat.mtime.toUTCString()
+      'Last-Modified': stat.mtime.toUTCString(),
+      ...ldpHeaders(stat.isDirectory)
     }
     // Only include Content-Length for files (not directories)
     if (!stat.isDirectory) {
@@ -204,7 +208,8 @@ async function handleStorage(req, res) {
     const headers = {
       'ETag': newStat.etag,
       'Location': `/storage${resourcePath}`,
-      'Last-Modified': newStat.mtime.toUTCString()
+      'Last-Modified': newStat.mtime.toUTCString(),
+      ...ldpHeaders(newStat.isDirectory)
     }
     res.writeHead(statusCode, headers)
     return res.end()
@@ -226,7 +231,7 @@ async function handleStorage(req, res) {
     }
 
     await storage.delete(resourcePath)
-    res.writeHead(204)
+    res.writeHead(204, ldpHeaders(stat.isDirectory))
     return res.end()
   }
 
@@ -234,9 +239,13 @@ async function handleStorage(req, res) {
   if (method === 'POST') {
     const body = await parseBody(req)
     const newPath = await storage.post(resourcePath, body, agent)
-    res.writeHead(201, { 
+    const newStat = await storage.stat(newPath)
+    res.writeHead(201, {
       'Content-Type': 'application/json',
-      'Location': `/storage${newPath}`
+      'Location': `/storage${newPath}`,
+      'ETag': newStat?.etag,
+      'Last-Modified': newStat?.mtime.toUTCString(),
+      ...ldpHeaders(false) // POST creates resources, not containers
     })
     return res.end(JSON.stringify({ created: newPath }))
   }
