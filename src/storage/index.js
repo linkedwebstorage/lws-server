@@ -67,10 +67,32 @@ export class Storage {
     return resourcePath
   }
 
-  async post(containerPath, data, agent) {
-    const id = crypto.randomUUID().slice(0, 8)
-    const resourcePath = path.join(containerPath, id + '.json')
-    await this.put(resourcePath, data, agent)
+  async post(containerPath, data, agent, options = {}) {
+    const { slug, isContainer } = options
+    const extension = isContainer ? '' : '.json'
+
+    // Generate base name from slug or UUID
+    let baseName = slug ? sanitizeSlug(slug) : crypto.randomUUID().slice(0, 8)
+
+    // Handle collisions by appending suffix
+    let resourcePath = path.join(containerPath, baseName + extension)
+    let suffix = 1
+    while (await this.exists(resourcePath)) {
+      resourcePath = path.join(containerPath, `${baseName}-${suffix}${extension}`)
+      suffix++
+      if (suffix > 100) {
+        // Fallback to UUID if too many collisions
+        baseName = crypto.randomUUID().slice(0, 8)
+        resourcePath = path.join(containerPath, baseName + extension)
+        break
+      }
+    }
+
+    if (isContainer) {
+      await fs.mkdir(this.resolvePath(resourcePath), { recursive: true })
+    } else {
+      await this.put(resourcePath, data, agent)
+    }
     return resourcePath
   }
 
@@ -143,4 +165,21 @@ function mergePatch(target, patch) {
     }
   }
   return result
+}
+
+/**
+ * Sanitize slug for use as filename
+ * - Only alphanumeric, hyphens, underscores, dots allowed
+ * - Trim whitespace, replace spaces with hyphens
+ * - Remove leading/trailing dots/hyphens
+ * - Limit length to 100 chars
+ */
+function sanitizeSlug(slug) {
+  return slug
+    .trim()
+    .replace(/\s+/g, '-')           // spaces to hyphens
+    .replace(/[^a-zA-Z0-9._-]/g, '') // remove invalid chars
+    .replace(/^[.-]+|[.-]+$/g, '')   // trim leading/trailing dots/hyphens
+    .slice(0, 100)                   // limit length
+    || 'resource'                    // fallback if empty
 }
