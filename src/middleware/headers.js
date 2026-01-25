@@ -17,9 +17,10 @@ const LWS = {
  * @param {boolean} isContainer - Is this a container?
  * @param {object} options - Additional options
  * @param {string} options.storageDescription - URI of the storage description resource
+ * @param {string} options.acl - URI of the ACL resource
  */
 export function linkHeader(isContainer, options = {}) {
-  const { storageDescription } = options
+  const { storageDescription, acl } = options
   const links = [`<${LDP.Resource}>; rel="type"`]
   if (isContainer) {
     links.push(`<${LDP.Container}>; rel="type"`)
@@ -27,6 +28,9 @@ export function linkHeader(isContainer, options = {}) {
   }
   if (storageDescription) {
     links.push(`<${storageDescription}>; rel="${LWS.storageDescription}"`)
+  }
+  if (acl) {
+    links.push(`<${acl}>; rel="acl"`)
   }
   return links.join(', ')
 }
@@ -47,6 +51,7 @@ export function allowHeader(isContainer) {
  * @param {boolean} isContainer - Is this a container?
  * @param {object} options - Additional options
  * @param {string} options.storageDescription - URI of the storage description resource
+ * @param {string} options.acl - URI of the ACL resource
  */
 export function ldpHeaders(isContainer, options = {}) {
   const headers = {

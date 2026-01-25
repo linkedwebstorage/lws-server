@@ -114,6 +114,10 @@ async function handleStorage(req, res) {
   const username = usernameMatch ? usernameMatch[1] : null
   const storageDescriptionPath = username ? `/storage/${username}/.description` : null
 
+  // Calculate ACL path for this resource (containers use .acl inside, files use .acl suffix)
+  const isAclResource = resourcePath.endsWith('.acl')
+  const aclPath = isAclResource ? null : `/storage${resourcePath}${resourcePath.endsWith('/') ? '.acl' : '.acl'}`
+
   // Handle storage description resource (virtual, read-only)
   if (resourcePath.match(/^\/[^/]+\/\.description$/)) {
     // Only GET and HEAD allowed
@@ -138,7 +142,7 @@ async function handleStorage(req, res) {
     }
     const headers = {
       'Content-Type': 'application/ld+json',
-      ...ldpHeaders(false, { storageDescription: storageDescriptionPath })
+      ...ldpHeaders(false, { storageDescription: storageDescriptionPath, acl: aclPath })
     }
 
     if (method === 'HEAD') {
@@ -178,7 +182,7 @@ async function handleStorage(req, res) {
         'Content-Type': contentType,
         'ETag': stat.etag,
         'Last-Modified': stat.mtime.toUTCString(),
-        ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath })
+        ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath, acl: aclPath })
       })
       return res.end()
     }
@@ -189,7 +193,7 @@ async function handleStorage(req, res) {
       'Content-Type': contentType,
       'ETag': stat.etag,
       'Last-Modified': stat.mtime.toUTCString(),
-      ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath })
+      ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath, acl: aclPath })
     }
     res.writeHead(200, headers)
     return res.end(typeof resource === 'string' ? resource : JSON.stringify(resource, null, 2))
@@ -208,7 +212,7 @@ async function handleStorage(req, res) {
       'Content-Type': contentType,
       'ETag': stat.etag,
       'Last-Modified': stat.mtime.toUTCString(),
-      ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath })
+      ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath, acl: aclPath })
     }
     // Only include Content-Length for files (not directories)
     if (!stat.isDirectory) {
@@ -251,7 +255,7 @@ async function handleStorage(req, res) {
       'ETag': newStat.etag,
       'Location': `/storage${resourcePath}`,
       'Last-Modified': newStat.mtime.toUTCString(),
-      ...ldpHeaders(newStat.isDirectory, { storageDescription: storageDescriptionPath })
+      ...ldpHeaders(newStat.isDirectory, { storageDescription: storageDescriptionPath, acl: aclPath })
     }
     res.writeHead(statusCode, headers)
     return res.end()
@@ -273,7 +277,7 @@ async function handleStorage(req, res) {
     }
 
     await storage.delete(resourcePath)
-    res.writeHead(204, ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath }))
+    res.writeHead(204, ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath, acl: aclPath }))
     return res.end()
   }
 
@@ -330,7 +334,7 @@ async function handleStorage(req, res) {
       'Content-Type': 'application/json',
       'ETag': newStat.etag,
       'Last-Modified': newStat.mtime.toUTCString(),
-      ...ldpHeaders(false, { storageDescription: storageDescriptionPath })
+      ...ldpHeaders(false, { storageDescription: storageDescriptionPath, acl: aclPath })
     })
     const updated = await storage.get(resourcePath)
     return res.end(JSON.stringify(updated, null, 2))
@@ -354,7 +358,7 @@ async function handleStorage(req, res) {
       'Location': `/storage${newPath}`,
       'ETag': newStat?.etag,
       'Last-Modified': newStat?.mtime?.toUTCString(),
-      ...ldpHeaders(newStat?.isDirectory || false, { storageDescription: storageDescriptionPath })
+      ...ldpHeaders(newStat?.isDirectory || false, { storageDescription: storageDescriptionPath, acl: aclPath })
     })
     return res.end(JSON.stringify({ created: newPath }))
   }
