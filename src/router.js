@@ -244,8 +244,8 @@ async function handleStorage(req, res) {
       'Content-Type': 'application/json',
       'Location': `/storage${newPath}`,
       'ETag': newStat?.etag,
-      'Last-Modified': newStat?.mtime.toUTCString(),
-      ...ldpHeaders(false) // POST creates resources, not containers
+      'Last-Modified': newStat?.mtime?.toUTCString(),
+      ...ldpHeaders(newStat?.isDirectory || false)
     })
     return res.end(JSON.stringify({ created: newPath }))
   }
