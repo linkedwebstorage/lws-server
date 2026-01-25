@@ -104,9 +104,35 @@ async function handleAuth(req, res) {
 async function handleStorage(req, res) {
   const { pathname, method } = req
   const { storage, authz, agent } = req
-  
+  const host = `http://${req.headers.host}`
+
   // Remove /storage prefix
   const resourcePath = pathname.replace(/^\/storage/, '') || '/'
+
+  // Extract username from path (e.g., /alice/docs/file.txt → alice)
+  const usernameMatch = resourcePath.match(/^\/([^/]+)/)
+  const username = usernameMatch ? usernameMatch[1] : null
+  const storageDescriptionPath = username ? `/storage/${username}/.description` : null
+
+  // Handle storage description resource
+  if (resourcePath.match(/^\/[^/]+\/\.description$/) && method === 'GET') {
+    const storageRoot = `${host}/storage/${username}/`
+    const description = {
+      '@context': 'https://www.w3.org/ns/lws/v1',
+      'id': storageRoot,
+      'type': 'Storage',
+      'controller': `${storageRoot}profile#me`,
+      'service': [{
+        'type': 'StorageDescription',
+        'serviceEndpoint': `${host}${storageDescriptionPath}`
+      }]
+    }
+    res.writeHead(200, {
+      'Content-Type': 'application/ld+json',
+      ...ldpHeaders(false, { storageDescription: storageDescriptionPath })
+    })
+    return res.end(JSON.stringify(description, null, 2))
+  }
 
   // Check authorization
   const canAccess = await authz.check(agent, resourcePath, method)
@@ -136,7 +162,7 @@ async function handleStorage(req, res) {
         'Content-Type': contentType,
         'ETag': stat.etag,
         'Last-Modified': stat.mtime.toUTCString(),
-        ...ldpHeaders(stat.isDirectory)
+        ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath })
       })
       return res.end()
     }
@@ -147,7 +173,7 @@ async function handleStorage(req, res) {
       'Content-Type': contentType,
       'ETag': stat.etag,
       'Last-Modified': stat.mtime.toUTCString(),
-      ...ldpHeaders(stat.isDirectory)
+      ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath })
     }
     res.writeHead(200, headers)
     return res.end(typeof resource === 'string' ? resource : JSON.stringify(resource, null, 2))
@@ -166,7 +192,7 @@ async function handleStorage(req, res) {
       'Content-Type': contentType,
       'ETag': stat.etag,
       'Last-Modified': stat.mtime.toUTCString(),
-      ...ldpHeaders(stat.isDirectory)
+      ...ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath })
     }
     // Only include Content-Length for files (not directories)
     if (!stat.isDirectory) {
@@ -209,7 +235,7 @@ async function handleStorage(req, res) {
       'ETag': newStat.etag,
       'Location': `/storage${resourcePath}`,
       'Last-Modified': newStat.mtime.toUTCString(),
-      ...ldpHeaders(newStat.isDirectory)
+      ...ldpHeaders(newStat.isDirectory, { storageDescription: storageDescriptionPath })
     }
     res.writeHead(statusCode, headers)
     return res.end()
@@ -231,7 +257,7 @@ async function handleStorage(req, res) {
     }
 
     await storage.delete(resourcePath)
-    res.writeHead(204, ldpHeaders(stat.isDirectory))
+    res.writeHead(204, ldpHeaders(stat.isDirectory, { storageDescription: storageDescriptionPath }))
     return res.end()
   }
 
@@ -288,7 +314,7 @@ async function handleStorage(req, res) {
       'Content-Type': 'application/json',
       'ETag': newStat.etag,
       'Last-Modified': newStat.mtime.toUTCString(),
-      ...ldpHeaders(false)
+      ...ldpHeaders(false, { storageDescription: storageDescriptionPath })
     })
     const updated = await storage.get(resourcePath)
     return res.end(JSON.stringify(updated, null, 2))
@@ -312,7 +338,7 @@ async function handleStorage(req, res) {
       'Location': `/storage${newPath}`,
       'ETag': newStat?.etag,
       'Last-Modified': newStat?.mtime?.toUTCString(),
-      ...ldpHeaders(newStat?.isDirectory || false)
+      ...ldpHeaders(newStat?.isDirectory || false, { storageDescription: storageDescriptionPath })
     })
     return res.end(JSON.stringify({ created: newPath }))
   }

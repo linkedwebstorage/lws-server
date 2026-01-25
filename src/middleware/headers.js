@@ -8,14 +8,25 @@ const LDP = {
   BasicContainer: 'http://www.w3.org/ns/ldp#BasicContainer'
 }
 
+const LWS = {
+  storageDescription: 'https://www.w3.org/ns/lws#storageDescription'
+}
+
 /**
  * Generate Link header for LDP resource types
+ * @param {boolean} isContainer - Is this a container?
+ * @param {object} options - Additional options
+ * @param {string} options.storageDescription - URI of the storage description resource
  */
-export function linkHeader(isContainer) {
+export function linkHeader(isContainer, options = {}) {
+  const { storageDescription } = options
   const links = [`<${LDP.Resource}>; rel="type"`]
   if (isContainer) {
     links.push(`<${LDP.Container}>; rel="type"`)
     links.push(`<${LDP.BasicContainer}>; rel="type"`)
+  }
+  if (storageDescription) {
+    links.push(`<${storageDescription}>; rel="${LWS.storageDescription}"`)
   }
   return links.join(', ')
 }
@@ -33,10 +44,13 @@ export function allowHeader(isContainer) {
 
 /**
  * Get all LDP headers for a response
+ * @param {boolean} isContainer - Is this a container?
+ * @param {object} options - Additional options
+ * @param {string} options.storageDescription - URI of the storage description resource
  */
-export function ldpHeaders(isContainer) {
+export function ldpHeaders(isContainer, options = {}) {
   const headers = {
-    'Link': linkHeader(isContainer),
+    'Link': linkHeader(isContainer, options),
     'Allow': allowHeader(isContainer)
   }
   if (isContainer) {
