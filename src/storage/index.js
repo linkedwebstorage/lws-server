@@ -37,7 +37,7 @@ export class Storage {
           '@id': resourcePath,
           type: 'Container',
           contains: entries
-            .filter(e => !e.name.startsWith('.')) // Hide dotfiles
+            .filter(e => !e.name.startsWith('.') && !e.name.endsWith('.acl')) // Hide dotfiles and ACL files
             .map(e => ({
               name: e.name,
               type: e.isDirectory() ? 'Container' : 'Resource'
@@ -132,6 +132,17 @@ export class Storage {
   async delete(resourcePath) {
     const fullPath = this.resolvePath(resourcePath)
     await fs.rm(fullPath, { recursive: true })
+
+    // Cascade delete: also remove .acl file if it exists
+    if (!resourcePath.endsWith('.acl')) {
+      const aclPath = resourcePath + '.acl'
+      try {
+        await fs.rm(this.resolvePath(aclPath))
+      } catch (err) {
+        // Ignore if .acl doesn't exist
+        if (err.code !== 'ENOENT') throw err
+      }
+    }
   }
 
   async exists(resourcePath) {
