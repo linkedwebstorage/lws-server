@@ -15,7 +15,8 @@ export function createServer(options = {}) {
 
   const storage = new Storage(dataDir)
   const authn = new Authn(storage)
-  const authz = new Authz(storage)
+  const baseUri = `http://localhost:${port}`
+  const authz = new Authz(storage, { baseUri })
 
   const server = http.createServer(async (req, res) => {
     // Add CORS headers
