@@ -114,8 +114,17 @@ async function handleStorage(req, res) {
   const username = usernameMatch ? usernameMatch[1] : null
   const storageDescriptionPath = username ? `/storage/${username}/.description` : null
 
-  // Handle storage description resource
-  if (resourcePath.match(/^\/[^/]+\/\.description$/) && method === 'GET') {
+  // Handle storage description resource (virtual, read-only)
+  if (resourcePath.match(/^\/[^/]+\/\.description$/)) {
+    // Only GET and HEAD allowed
+    if (method !== 'GET' && method !== 'HEAD') {
+      res.writeHead(405, {
+        'Content-Type': 'application/json',
+        'Allow': 'GET, HEAD'
+      })
+      return res.end(JSON.stringify({ error: 'Method Not Allowed' }))
+    }
+
     const storageRoot = `${host}/storage/${username}/`
     const description = {
       '@context': 'https://www.w3.org/ns/lws/v1',
@@ -127,10 +136,17 @@ async function handleStorage(req, res) {
         'serviceEndpoint': `${host}${storageDescriptionPath}`
       }]
     }
-    res.writeHead(200, {
+    const headers = {
       'Content-Type': 'application/ld+json',
       ...ldpHeaders(false, { storageDescription: storageDescriptionPath })
-    })
+    }
+
+    if (method === 'HEAD') {
+      res.writeHead(200, headers)
+      return res.end()
+    }
+
+    res.writeHead(200, headers)
     return res.end(JSON.stringify(description, null, 2))
   }
 
