@@ -237,9 +237,10 @@ async function handleStorage(req, res) {
 
   // PATCH - Partial update (JSON Merge Patch)
   if (method === 'PATCH') {
-    // Validate Content-Type
-    const contentType = req.headers['content-type'] || ''
-    if (!contentType.includes('application/merge-patch+json')) {
+    // Validate Content-Type (case-insensitive per RFC)
+    const contentTypeHeader = req.headers['content-type'] || ''
+    const mediaType = contentTypeHeader.split(';')[0].trim().toLowerCase()
+    if (mediaType !== 'application/merge-patch+json') {
       res.writeHead(415, { 'Content-Type': 'application/json' })
       return res.end(JSON.stringify({
         error: 'Unsupported Media Type',
@@ -269,6 +270,12 @@ async function handleStorage(req, res) {
     }
 
     const patchData = await parseBody(req)
+
+    // Reject invalid JSON (parseBody returns string on parse failure)
+    if (typeof patchData === 'string') {
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      return res.end(JSON.stringify({ error: 'Bad Request', reason: 'Invalid JSON in request body' }))
+    }
     const result = await storage.patch(resourcePath, patchData, agent)
 
     if (result === null) {

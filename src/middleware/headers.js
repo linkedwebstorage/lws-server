@@ -37,11 +37,12 @@ export function allowHeader(isContainer) {
 export function ldpHeaders(isContainer) {
   const headers = {
     'Link': linkHeader(isContainer),
-    'Allow': allowHeader(isContainer),
-    'Accept-Patch': 'application/merge-patch+json'
+    'Allow': allowHeader(isContainer)
   }
   if (isContainer) {
     headers['Accept-Post'] = '*/*'
+  } else {
+    headers['Accept-Patch'] = 'application/merge-patch+json'
   }
   return headers
 }

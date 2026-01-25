@@ -105,10 +105,11 @@ export class Storage {
   }
 
   async patch(resourcePath, patchData, agent) {
-    const existing = await this.get(resourcePath)
-    if (existing === null) {
+    const resourceExists = await this.exists(resourcePath)
+    if (!resourceExists) {
       return null // Resource doesn't exist
     }
+    const existing = await this.get(resourcePath)
     if (typeof existing !== 'object' || typeof patchData !== 'object') {
       // Can't merge non-objects, just replace
       await this.put(resourcePath, patchData, agent)
